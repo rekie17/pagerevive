@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 export async function POST(request: NextRequest) {
   try {
+    // Check if API key is configured
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json(
+        { error: 'ANTHROPIC_API_KEY not configured. Please add it to Vercel environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+
     const { url, desktop, mobile } = await request.json();
 
     if (!url || !desktop || !mobile) {
