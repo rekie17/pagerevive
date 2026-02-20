@@ -16,8 +16,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Use Microlink API for screenshots (free tier)
-    const desktopUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=1280&viewport.height=1024`;
-    const mobileUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=375&viewport.height=812&viewport.isMobile=true`;
+    // Add wait time and hide elements to handle popups
+    const desktopUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=1280&viewport.height=1024&waitFor=3000&hide=[class*="modal"],[class*="popup"],[class*="overlay"],[id*="cookie"]`;
+    const mobileUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=375&viewport.height=812&viewport.isMobile=true&waitFor=3000&hide=[class*="modal"],[class*="popup"],[class*="overlay"],[id*="cookie"]`;
 
     const [desktopRes, mobileRes] = await Promise.all([
       fetch(desktopUrl),
