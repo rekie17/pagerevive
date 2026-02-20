@@ -11,6 +11,12 @@ export default function Home() {
   const analyzeURL = async () => {
     if (!url) return;
     
+    // Auto-add https:// if missing
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+    
     setLoading(true);
     setError('');
     setAnalysis(null);
@@ -20,10 +26,13 @@ export default function Home() {
       const screenshotRes = await fetch('/api/screenshot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url: normalizedUrl }),
       });
 
-      if (!screenshotRes.ok) throw new Error('Failed to capture screenshots');
+      if (!screenshotRes.ok) {
+        const errData = await screenshotRes.json();
+        throw new Error(errData.error || 'Failed to capture screenshots');
+      }
       
       const { desktop, mobile } = await screenshotRes.json();
 
@@ -31,10 +40,13 @@ export default function Home() {
       const analyzeRes = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, desktop, mobile }),
+        body: JSON.stringify({ url: normalizedUrl, desktop, mobile }),
       });
 
-      if (!analyzeRes.ok) throw new Error('Analysis failed');
+      if (!analyzeRes.ok) {
+        const errData = await analyzeRes.json();
+        throw new Error(errData.error || 'Analysis failed');
+      }
 
       const result = await analyzeRes.json();
       setAnalysis({ ...result, desktop, mobile });
@@ -67,10 +79,11 @@ export default function Home() {
               </label>
               <div className="flex gap-3">
                 <input
-                  type="url"
+                  type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com"
+                  onKeyDown={(e) => e.key === 'Enter' && analyzeURL()}
+                  placeholder="example.com or https://example.com"
                   className="flex-1 px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 text-white placeholder-slate-500"
                   disabled={loading}
                 />
@@ -82,6 +95,9 @@ export default function Home() {
                   {loading ? 'Analyzing...' : 'Analyze'}
                 </button>
               </div>
+              <p className="mt-2 text-xs text-slate-400">
+                No need to include https:// — we'll add it for you
+              </p>
               {error && (
                 <p className="mt-3 text-red-400 text-sm">{error}</p>
               )}
