@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,36 +15,42 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid URL' }, { status: 400 });
     }
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    // Use Microlink API for screenshots (free tier)
+    const desktopUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=1280&viewport.height=1024`;
+    const mobileUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=375&viewport.height=812&viewport.isMobile=true`;
 
-    const page = await browser.newPage();
-    
-    // Desktop screenshot
-    await page.setViewport({ width: 1280, height: 1024 });
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-    const desktopScreenshot = await page.screenshot({ 
-      encoding: 'base64',
-      fullPage: false,
-    });
+    const [desktopRes, mobileRes] = await Promise.all([
+      fetch(desktopUrl),
+      fetch(mobileUrl),
+    ]);
 
-    // Mobile screenshot
-    await page.setViewport({ width: 375, height: 812 });
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-    const mobileScreenshot = await page.screenshot({ 
-      encoding: 'base64',
-      fullPage: false,
-    });
+    if (!desktopRes.ok || !mobileRes.ok) {
+      throw new Error('Failed to capture screenshots');
+    }
 
-    await browser.close();
+    const desktopData = await desktopRes.json();
+    const mobileData = await mobileRes.json();
+
+    // Microlink returns the screenshot URL
+    const desktopScreenshot = desktopData.data?.screenshot?.url;
+    const mobileScreenshot = mobileData.data?.screenshot?.url;
+
+    if (!desktopScreenshot || !mobileScreenshot) {
+      throw new Error('Screenshot URLs not found in response');
+    }
+
+    // Fetch the images and convert to base64
+    const [desktopImg, mobileImg] = await Promise.all([
+      fetch(desktopScreenshot).then(r => r.arrayBuffer()),
+      fetch(mobileScreenshot).then(r => r.arrayBuffer()),
+    ]);
+
+    const desktopBase64 = Buffer.from(desktopImg).toString('base64');
+    const mobileBase64 = Buffer.from(mobileImg).toString('base64');
 
     return NextResponse.json({
-      desktop: `data:image/png;base64,${desktopScreenshot}`,
-      mobile: `data:image/png;base64,${mobileScreenshot}`,
+      desktop: `data:image/png;base64,${desktopBase64}`,
+      mobile: `data:image/png;base64,${mobileBase64}`,
     });
 
   } catch (error: any) {
