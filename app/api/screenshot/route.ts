@@ -16,17 +16,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Use Microlink API for screenshots (free tier)
-    // Build URL with properly encoded parameters
-    const hideSelectors = '.modal,.popup,.overlay,[class*="cookie"],[id*="cookie"]';
-    
+    // Keep it simple - just capture screenshots with wait time
     const desktopParams = new URLSearchParams({
       url: url,
       screenshot: 'true',
       meta: 'false',
       'viewport.width': '1280',
       'viewport.height': '1024',
-      waitFor: '3000',
-      hide: hideSelectors,
+      waitFor: '2000',
     });
     
     const mobileParams = new URLSearchParams({
@@ -36,8 +33,7 @@ export async function POST(request: NextRequest) {
       'viewport.width': '375',
       'viewport.height': '812',
       'viewport.isMobile': 'true',
-      waitFor: '3000',
-      hide: hideSelectors,
+      waitFor: '2000',
     });
 
     const desktopUrl = `https://api.microlink.io/?${desktopParams.toString()}`;
