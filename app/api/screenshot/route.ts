@@ -16,9 +16,32 @@ export async function POST(request: NextRequest) {
     }
 
     // Use Microlink API for screenshots (free tier)
-    // Add wait time and hide elements to handle popups
-    const desktopUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=1280&viewport.height=1024&waitFor=3000&hide=[class*="modal"],[class*="popup"],[class*="overlay"],[id*="cookie"]`;
-    const mobileUrl = `https://api.microlink.io/?url=${encodeURIComponent(url)}&screenshot=true&meta=false&viewport.width=375&viewport.height=812&viewport.isMobile=true&waitFor=3000&hide=[class*="modal"],[class*="popup"],[class*="overlay"],[id*="cookie"]`;
+    // Build URL with properly encoded parameters
+    const hideSelectors = '.modal,.popup,.overlay,[class*="cookie"],[id*="cookie"]';
+    
+    const desktopParams = new URLSearchParams({
+      url: url,
+      screenshot: 'true',
+      meta: 'false',
+      'viewport.width': '1280',
+      'viewport.height': '1024',
+      waitFor: '3000',
+      hide: hideSelectors,
+    });
+    
+    const mobileParams = new URLSearchParams({
+      url: url,
+      screenshot: 'true',
+      meta: 'false',
+      'viewport.width': '375',
+      'viewport.height': '812',
+      'viewport.isMobile': 'true',
+      waitFor: '3000',
+      hide: hideSelectors,
+    });
+
+    const desktopUrl = `https://api.microlink.io/?${desktopParams.toString()}`;
+    const mobileUrl = `https://api.microlink.io/?${mobileParams.toString()}`;
 
     const [desktopRes, mobileRes] = await Promise.all([
       fetch(desktopUrl),
