@@ -84,8 +84,16 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
 
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
     
+    // Strip markdown code fences if present
+    let jsonText = responseText.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    
     // Parse the JSON response
-    const analysis = JSON.parse(responseText);
+    const analysis = JSON.parse(jsonText.trim());
 
     return NextResponse.json(analysis);
 
